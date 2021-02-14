@@ -1,12 +1,7 @@
-#-------- Import Package
-import pip, requests, os, zipfile, time, lxml
-
 def mainMenu(driverPath):
-    #-------- Set Username Password
+    #-------- Set Main Info
     uname = input('NIM = ')
     pwd = str(input('Password = '))
-
-    #-------- Set Main Info
     semester = int(input('Semester? '))
     count = int(input('Berapa Mata Kuliah = '))
     print('\n----- HINT -----')
@@ -19,7 +14,6 @@ def mainMenu(driverPath):
     print('\nNote!! Ctrl+C to Stop!')
 
     #-------- Starting
-
     #-------- Open Web Browser and go to URL
     driver = webdriver.Chrome(driverPath+'\chromedriver.exe')
     driver.get('https://siakad.trunojoyo.ac.id')
@@ -32,18 +26,9 @@ def mainMenu(driverPath):
     homepage.send_keys(pwd)
     homepage.send_keys(Keys.RETURN)
 
-    #-------- Copy HTML Code to Analyze later
-    tryOne = driver.page_source
-    with open('file.html', 'w') as f:
-        f.write(tryOne)
+    #-------- Go To Kartu Rencana Studi
+    driver.find_element_by_link_text('Kartu Rencana Studi').click()
 
-    #-------- Find Something in file :)
-    openFile = BeautifulSoup(open('file.html'), features="lxml")
-    for tagSearch in openFile.find_all('a'):
-        if tagSearch.text == 'Kartu Rencana Studi':
-            theLink = str(tagSearch['href'])
-            driver.get(theLink)
-            break
     complete = False
     while complete == False:
         try:
@@ -55,19 +40,28 @@ def mainMenu(driverPath):
         driver.execute_script("arguments[0].click()", krs)
 
         #-------- Go to URL
-        driver.execute_script("javascript:Effect.toggle({},'blind')".format(('semester_' + str(semester))))
+        try:
+            driver.execute_script("javascript:Effect.toggle({},'blind')".format(('semester_' + str(semester))))
+        except:
+            print("Semester "+str(semester)+" belum buka")
+            break
 
         #-------- Select your course
         for i in range(len(matkul)):
             chs = choose[i]
-            checknow = driver.find_elements_by_class_name(matkul[i])
-            count = 1
-            found = False
-            for j in checknow:
-                if count == chs and found == False:
-                    driver.execute_script("arguments[0].click();", j)
-                    found = True
-                count += 1
+            try:
+                checknow = driver.find_elements_by_class_name(matkul[i])
+                count = 1
+                found = False
+                for j in checknow:
+                    if count == chs and found == False:
+                        driver.execute_script("arguments[0].click();", j)
+                        found = True
+                    count += 1
+            except:
+                # print(matkul[i], " berhasil diambil")
+                chs.pop(i)
+                matkul.pop(i)
         driver.execute_script("arguments[0].click()", driver.find_element_by_name('btnAdd'))
 
         #-------- Save Result to HTML to analyze
@@ -78,20 +72,16 @@ def mainMenu(driverPath):
 
         #-------- Analyze result
         try:
-            for tag in result.find_all('namakelas'):
-                if tag.text == ' sudah penuh.':
-                    driver.execute_script("arguments[0].click()", driver.find_element_by_name('btnKembali'))
-            complete = True
-            print("Pengambilan Kelas Berhasil")
+            res = BeautifulSoup(open('result.html'))
+            res = res.findAll(['td', 'strong'])[0]
+            res = res.findALl('li')
+            if '()' not in res[0]:
+                [print(i.text) for i in res]
+                if len(res) == len(matkul):
+                    print("Pengambilan semua mata kuliah berhasil")
+                    break
         except:
-            print('Trying . . .')
-        #except:
-        #    complete = True
-        #    print('Done')
-
-# Install Package
-def install(package):
-    pip.main(['install', package])
+            None
 
 # Download Driver
 def locateDriver(driverPath):
@@ -103,21 +93,16 @@ def locateDriver(driverPath):
 
 # Main Process
 if __name__ == '__main__':
+    import requests, os, zipfile, time, lxml
     driverPath = os.path.expanduser('~\Documents')
     if not os.path.exists(driverPath+'\chromedriver.exe'):
         print("Downloading Chrome Driver from available source...")
         locateDriver(driverPath)
-    try:
-        from bs4 import BeautifulSoup
-        from selenium import webdriver
-        from selenium.webdriver.common.keys import Keys
-    except ImportError:
-        print("Installing Modules...")
-        install('selenium')
-        install('beautifulsoap4')
-        from bs4 import BeautifulSoup
-        from selenium import webdriver
-        from selenium.webdriver.common.keys import Keys
-    finally:
         print("\nAll Done. Dependencies Ready.\n")
-        mainMenu(driverPath)
+
+    # Import Modules
+    from bs4 import BeautifulSoup
+    from selenium import webdriver
+    from selenium.webdriver.common.keys import Keys
+    # Start
+    mainMenu(driverPath)
