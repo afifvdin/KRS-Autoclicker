@@ -4,5 +4,5 @@ def install(package):
 install('lxml')
 install('requests')
 install('selenium')
-install('beautifulsoap4')
+install('beautifulsoup4')
 print('\nModule installation Successfull, Now Run main.py file')
